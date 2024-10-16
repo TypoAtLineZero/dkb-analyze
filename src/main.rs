@@ -1,16 +1,38 @@
+use anyhow::{Context, Result};
 use clap::Parser;
+// use polars_core::prelude::*;
+// use polars_io::prelude::*;
+// use std::fs::File;
 
-/// Search for a pattern in a file and display the lines that contain it.
-#[derive(Parser)]
+pub mod analyzing;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
 struct Cli {
-    /// The pattern to look for
-    pattern: String,
-    /// The path to the file to read
+    #[arg(short, long, required = true)]
     path: std::path::PathBuf,
+
+    #[arg(short, long, required = false)]
+    interval: Option<String>,
+
+    #[arg(short, long, required = false)]
+    visualization: bool,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Cli::parse();
 
-    println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
+    let content = std::fs::read_to_string(&args.path)
+        .with_context(|| format!("Could not read file '{}'", args.path.display()))?;
+
+    for line in content.lines() {
+        println!("{}", line);
+    }
+    // println!("Path: {:?}", args.path);
+    // println!("Intervall: {:?}", args.interval);
+    // println!("Visualization: {:?}", args.visualization);
+
+    // let mut df = DataFrame::empty();
+
+    Ok(())
 }
