@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use log::info;
+
 // use polars_core::prelude::*;
 // use polars_io::prelude::*;
 // use std::fs::File;
@@ -20,6 +22,9 @@ struct Cli {
 }
 
 fn main() -> Result<()> {
+    env_logger::init();
+    info!("Starting DKB Analyze");
+
     let args = Cli::parse();
 
     let content = std::fs::read_to_string(&args.path)
@@ -28,9 +33,9 @@ fn main() -> Result<()> {
     for line in content.lines() {
         println!("{}", line);
     }
-    // println!("Path: {:?}", args.path);
-    // println!("Intervall: {:?}", args.interval);
-    // println!("Visualization: {:?}", args.visualization);
+    // info!("Path: {:?}", args.path);
+    // info!("Intervall: {:?}", args.interval);
+    // info!("Visualization: {:?}", args.visualization);
 
     // let mut df = DataFrame::empty();
 
