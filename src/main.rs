@@ -1,10 +1,8 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use log::info;
+use polars::prelude::*;
 
-// use polars_core::prelude::*;
-// use polars_io::prelude::*;
-// use std::fs::File;
 
 pub mod analyzing;
 
@@ -24,20 +22,20 @@ struct Cli {
 fn main() -> Result<()> {
     env_logger::init();
     info!("Starting DKB Analyze");
-
+    
     let args = Cli::parse();
-
-    let content = std::fs::read_to_string(&args.path)
-        .with_context(|| format!("Could not read file '{}'", args.path.display()))?;
-
-    for line in content.lines() {
-        println!("{}", line);
-    }
     // info!("Path: {:?}", args.path);
     // info!("Intervall: {:?}", args.interval);
     // info!("Visualization: {:?}", args.visualization);
 
-    // let mut df = DataFrame::empty();
+    let df_csv = CsvReadOptions::default()
+        .with_infer_schema_length(None)
+        .with_has_header(true)
+        .with_parse_options(CsvParseOptions::default().with_try_parse_dates(true))
+        .try_into_reader_with_file_path(Some(args.path.into()))?
+        .finish()?;
+
+    println!("{}", df_csv);
 
     Ok(())
 }
