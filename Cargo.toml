@@ -15,6 +15,6 @@ anyhow = "1.0.89"
 clap = { version = "4.5.20", features = ["derive"] }
 env_logger = "0.11.5"
 log = "0.4.22"
-polars = { version = "0.43.1", features = ["lazy"] }
+polars = { version = "0.43.1", features = ["csv"] }
 polars-core = "0.43.1"
 polars-io = "0.43.1"
