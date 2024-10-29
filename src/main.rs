@@ -38,17 +38,14 @@ fn group_by_payee(df: DataFrame) -> PolarsResult<DataFrame> {
         .count()
 }
 
-fn sort_with_specific_order(
-    df: PolarsResult<DataFrame>,
-    descending: bool,
-) -> PolarsResult<DataFrame> {
+fn sort_with_specific_order(df: PolarsResult<DataFrame>, descending: bool) -> PolarsResult<DataFrame> {
     df?.sort(
         ["Buchungsdatum_count"],
         SortMultipleOptions::new().with_order_descending(descending),
     )
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), ::std::io::Error> {
     env_logger::init();
     info!("Starting DKB Analyze");
 
@@ -58,14 +55,14 @@ fn main() -> Result<()> {
     // info!("Visualization: {:?}", args.visualization);
     let df = load_csv_from_path(args.path).unwrap();
     println!("{}", df);
-    println!("{:?}", df.get_column_names());
-    println!("{:?}", df.get_columns());
+    // println!("{:?}", df.get_column_names());
+    // println!("{:?}", df.get_columns());
 
     let count_df = group_by_payee(df.clone());
-    println!("{:?}", count_df);
+    // println!("{:?}", count_df);
 
     let sorted_count_df = sort_with_specific_order(count_df, true);
-    println!("{:?}", sorted_count_df);
+    // println!("{:?}", sorted_count_df);
 
     Ok(())
 }
