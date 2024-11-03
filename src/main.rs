@@ -1,10 +1,12 @@
 use anyhow::Result;
+use categories::Categories;
 use clap::Parser;
 use log::info;
 use polars::prelude::*;
 use std::path::PathBuf;
 
 pub mod analyzing;
+pub mod categories;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -63,6 +65,9 @@ fn main() -> Result<(), ::std::io::Error> {
 
     let sorted_count_df = sort_with_specific_order(count_df, true);
     // println!("{:?}", sorted_count_df);
+
+    let mut expanses = categories::new();
+    println!("{:?}", expanses);
 
     Ok(())
 }
