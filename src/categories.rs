@@ -2,13 +2,6 @@ use polars_core::utils::rayon::option;
 use std::fs;
 
 pub fn get_keywords () {
-    // let keywords_subscription = ["Netflix", "Bookbeat"];
-    // let keywords_car = ["Santandar", "kfz Versicherung"];
-    // let keywords_groceries = ["Rewe", "Rossmann"];
-    // let keywords_house = ["Sparkasse Kredit", "Elektro"];
-    // let keywords_savings = ["Sparplan"];
-
-    // let keywords = fs::read("./subscription").expect("Unable to read file");
     let raw_keywords = fs::read_to_string("./subscription").expect("Unable to read file");
     println!("{}", raw_keywords);
 
