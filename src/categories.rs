@@ -1,71 +1,98 @@
-pub fn new() -> Categories {
-    Categories {
-        subscriptions: Subscriptions {
-            netflix: 0.0,
-        },
+use polars_core::utils::rayon::option;
+use std::fs;
 
-        car: Car {
-            payment: 0.0,
-            insurance: 0.0,
-        },
+pub fn get_keywords () {
+    // let keywords_subscription = ["Netflix", "Bookbeat"];
+    // let keywords_car = ["Santandar", "kfz Versicherung"];
+    // let keywords_groceries = ["Rewe", "Rossmann"];
+    // let keywords_house = ["Sparkasse Kredit", "Elektro"];
+    // let keywords_savings = ["Sparplan"];
 
-        groceries: Groceries {
-            groceries: 0.0
-        },
+    // let keywords = fs::read("./subscription").expect("Unable to read file");
+    let raw_keywords = fs::read_to_string("./subscription").expect("Unable to read file");
+    println!("{}", raw_keywords);
 
-        house: House {
-            payment: 0.0,
-            insurance: 0.0,
-        },
+    let keywords: Vec<&str> = raw_keywords.split(' ').collect();
 
-        saving: Saving {
-            etf: 0.0,
-        },
-
-        uncategorized: Uncategorized {
-            uncategorized: 0.0,
-        },
+    for keyword in keywords {
+        println!("{}", keyword);
     }
 }
 
-#[derive(Debug)]
-struct Categories {
-    pub subscriptions: Subscriptions,
-    pub car: Car,
-    pub house: House,
-    pub groceries: Groceries,
-    pub saving: Saving,
-    pub uncategorized: Uncategorized,
-}
 
-#[derive(Debug)]
-struct Subscriptions {
-    pub netflix: f32,
-}
+// struct subscriptions {
+//         amount: 0.0,
+//         keywords: keywords_subscription, 
+//     }
 
-#[derive(Debug)]
-pub struct Car {
-    pub payment: f32,
-    pub insurance: f32,
-}
+    //     car: Car {
+    //         amount: 0.0,
+    //         keywords: keywords_car,
+    //     },
+        
+    //     groceries: Groceries {
+    //         amount: 0.0,
+    //         keywords: keywords_groceries,
+    //     },
+        
+    //     house: House {
+    //         amount: 0.0,
+    //         keywords: keywords_house,
+    //     },
+        
+    //     saving: Saving {
+    //         amount: 0.0,
+    //         keywords: keywords_saving,
+    //     },
+        
+    //     uncategorized: Uncategorized {
+            // amount: 0.0,
+            // missingKeywords: 
+    //     },
+    // }
 
-#[derive(Debug)]
-pub struct House {
-    pub payment: f32,
-    pub insurance: f32,
-}
 
-#[derive(Debug)]
-pub struct Groceries {
-    pub groceries: f32,
-}
+// #[derive(Debug)]
+// pub struct Categories {
+//     pub subscriptions: Subscriptions,
+//     pub car: Car,
+//     pub house: House,
+//     pub groceries: Groceries,
+//     pub saving: Saving,
+//     pub uncategorized: Uncategorized,
+// }
 
-#[derive(Debug)]
-pub struct Saving {
-    pub etf: f32,
-}
+// #[derive(Debug)]
+// pub struct Subscriptions {
+//     pub amount: f32,
+//     keywords: [&str; 2]
+// }
 
-#[derive(Debug)]
-pub struct Uncategorized {
-    pub uncategorized: f32,
-}
+// #[derive(Debug)]
+// pub struct Car {
+//     pub amount: f32,
+//     keywords: Option<String>,
+// }
+
+// #[derive(Debug)]
+// pub struct House {
+//     pub amount: f32,
+//     keywords: Option<String>,
+// }
+
+// #[derive(Debug)]
+// pub struct Groceries {
+//     pub amount: f32,
+//     keywords: Option<String>
+// }
+
+// #[derive(Debug)]
+// pub struct Saving {
+//     pub amount: f32,
+//     keywords: Option<String>
+// }
+
+// #[derive(Debug)]
+// pub struct Uncategorized {
+//     pub amount: f32,
+// }

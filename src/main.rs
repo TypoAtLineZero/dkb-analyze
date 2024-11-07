@@ -1,11 +1,10 @@
 use anyhow::Result;
-use categories::Categories;
+// use categories::Categories;
 use clap::Parser;
 use log::info;
 use polars::prelude::*;
 use std::path::PathBuf;
 
-pub mod analyzing;
 pub mod categories;
 
 #[derive(Parser, Debug)]
@@ -63,11 +62,15 @@ fn main() -> Result<(), ::std::io::Error> {
     let count_df = group_by_payee(df.clone());
     // println!("{:?}", count_df);
 
-    let sorted_count_df = sort_with_specific_order(count_df, true);
+    let _sorted_count_df = sort_with_specific_order(count_df, true);
     // println!("{:?}", sorted_count_df);
 
-    let mut expanses = categories::new();
-    println!("{:?}", expanses);
+    // let mut expanses = categories::init();
+    // println!("{:?}", expanses);
+    // expanses.car.insurance = 5.0;
+    // println!("{:?}", expanses);
+
+    categories::get_keywords();
 
     Ok(())
 }
