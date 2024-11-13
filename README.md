@@ -26,4 +26,4 @@ Output:
 - Weekly, monthly, yearly stacked bar chart with accumulated account bookings
 
 Abstraction overview
-![alt text](http://dkb-analyze-overview.png)
+![Model](https://github.com/TypoAtLineZero/dkb-analyze/blob/main/dkb-analyze-overview.png)
