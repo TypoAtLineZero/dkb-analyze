@@ -24,3 +24,6 @@ Input:
 Output:
 
 - Weekly, monthly, yearly stacked bar chart with accumulated account bookings
+
+Abstraction overview
+![alt text](http://dkb-analyze-overview.png)
