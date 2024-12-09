@@ -1,4 +1,3 @@
-use polars_core::utils::rayon::option;
 use std::fs;
 
 pub fn get_keywords () {
