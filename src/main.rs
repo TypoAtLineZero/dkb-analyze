@@ -2,16 +2,10 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use csv::ReaderBuilder;
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-struct Expense {
-    date: String,
-    time: String,
-    account_number: String,
-    description: String,
-    amount: f64,
-}
+mod categories;
+
+use crate::categories::Expense;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Define categories and their keywords
