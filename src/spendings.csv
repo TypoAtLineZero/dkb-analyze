@@ -1,7 +1,7 @@
-description,amount
-Restaurant bill,25.50
-Taxi ride,12.30
-Grocery shopping,45.70
-Movie ticket,10.00
-Train ticket,20.00
-Unknown purchase,15.00
+date,time,account_number,description,amount
+2024-12-01,14:30,12345,Restaurant bill,25.50
+2024-12-01,15:00,67890,Taxi ride,12.30
+2024-12-02,10:00,12345,Grocery shopping,45.70
+2024-12-03,20:00,67890,Movie ticket,10.00
+2024-12-04,08:00,12345,Train ticket,20.00
+2024-12-05,12:00,67890,Unknown purchase,15.00

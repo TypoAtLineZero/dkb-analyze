@@ -6,6 +6,9 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct Expense {
+    date: String,
+    time: String,
+    account_number: String,
     description: String,
     amount: f64,
 }
@@ -19,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     // Totals for each category
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
-    
+
     // Open the CSV file
     let file = File::open("/home/franz/_devenv/private/dkb-analyze/src/spendings.csv")?;
     let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
