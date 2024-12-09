@@ -1,13 +1,33 @@
+use clap::Parser;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
+use log::{info, warn};
 use csv::ReaderBuilder;
+use std::path::PathBuf;
 
 mod categories;
 
 use crate::categories::Expense;
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, required = false)]
+    path: Option<PathBuf>,
+
+    #[arg(short, long, required = false)]
+    interval: Option<String>,
+
+    #[arg(short, long, required = false)]
+    visualization: bool,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+    info!("Starting DKB Analyze");
+
+    let args = Cli::parse();
     // Define categories and their keywords
     let mut categories: HashMap<&str, Vec<&str>> = HashMap::new();
     categories.insert("Food", vec!["restaurant", "grocery", "cafe"]);
@@ -43,9 +63,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Print the totals for each category
-    println!("Category Totals:");
+    info!("Category Totals:");
     for (category, total) in &category_totals {
-        println!("{}: {:.2}", category, total);
+        info!("{}: {:.2}", category, total);
     }
 
     Ok(())
