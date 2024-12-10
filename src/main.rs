@@ -1,9 +1,8 @@
 use clap::Parser;
-use core::arch;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use log::{info, warn};
+use log::info;
 use csv::ReaderBuilder;
 
 mod categories;
