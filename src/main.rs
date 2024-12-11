@@ -41,7 +41,6 @@ fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec
 }
 
 fn parse_amount(value: String) -> f64 {
-// fn parse_amount(value: &str) -> f64 {
     // Remove surrounding quotes and trim whitespace
     let cleaned_value = value.trim_matches('"').trim();
     let normalized_value = cleaned_value.replace(',', ".");
@@ -67,7 +66,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut file_path = args.input;
     
     let categories = load_categories(args.categories);
-    println!("{:?}", categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
     
     let path = env::current_dir()?;
@@ -80,8 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // "" => file_path.replace_range(.., constructed_path.to_str()),
         _ => println!("Found input file"),
     }
-    println!("{}", file_path);
-    
+
     // Define column indices for the CSV fields
     let _posting_idx = 0;
     let _validation_idx = 1;
@@ -127,6 +124,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (category, total) in &category_totals {
         println!("{}: {:.2}", category, total);
     }
+
+    // What is missing
+    // - Abstract current working directory
+    // - Count number of entries overall
+    // - Count number of uncategorized entries
+    // - Analyze number of uncategorized entries
+    // - if entry is not found in description column, search in other columns but only with uncategorized entries
+    // - Count entries with income
 
     Ok(())
 }
