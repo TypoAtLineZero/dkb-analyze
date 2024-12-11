@@ -69,6 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let categories = load_categories(args.categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
     let mut uncategorized_totals: HashMap<&str, f64> = HashMap::new();
+    let mut uncategorized_entries: Vec<(String, f64, String)> = Vec::new();
 
     let path = env::current_dir()?;
     let mut constructed_path = path.join("src");
@@ -87,7 +88,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _status_idx = 2;
     let _payer_idx = 3;
     let recipient_idx = 4;
-    let _description_idx = 5;
+    let description_idx = 5;
     let _type_idx = 6;
     let _iban_idx = 7;
     let amount_idx = 8;
@@ -102,8 +103,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let record = result?;
         entries_total += 1;
 
-        // Assume specific column order: description is column 0, amount is column 1
-        let description = record.get(recipient_idx).unwrap_or("").to_string();
+        let recipient = record.get(recipient_idx).unwrap_or("").to_string();
+        let recipient_lower = recipient.to_lowercase();
+        let description = record.get(description_idx).unwrap_or("").to_string();
         let description_lower = description.to_lowercase();
 
         let amount: f64 = parse_amount(record.get(amount_idx).unwrap_or("0").to_string());
@@ -114,7 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Categorize the expense
         let mut matched = false;
         for (category, keywords) in &categories {
-            if keywords.iter().any(|k| description_lower.contains(k)) {
+            if keywords.iter().any(|k| recipient_lower.contains(k)) {
                 *category_totals.entry(category).or_insert(0.0) += amount;
                 matched = true;
                 break;
@@ -125,8 +127,36 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !matched {
             entries_uncategorized += 1;
             *uncategorized_totals.entry("Uncategorized").or_insert(0.0) += amount;
+            uncategorized_entries.push((description, amount, description_lower));
         }
     }
+
+    // Print uncategorized entries
+    for (description, amount, description_lower) in &uncategorized_entries {
+        println!(
+            "Description: {}, Amount: {:.2}, Additional Field: {}",
+            description, amount, description_lower
+        );
+    }
+
+    // for (description, amount, description_lower) in uncategorized_entries {
+    //     let mut matched = false;
+    
+    //     // Try to categorize using additional field
+    //     for (category, keywords) in &categories {
+    //         if keywords.iter().any(|k| description_lower.contains(k)) {
+    //             *category_totals.entry(category).or_insert(0.0) += amount;
+    //             matched = true;
+    //             break;
+    //         }
+    //     }
+    
+    //     // If still uncategorized, add to the "Uncategorized" category
+    //     if !matched {
+    //         *category_totals.entry("Uncategorized").or_insert(0.0) += amount;
+    //     }
+    // }
+    
 
     // Print the totals for each category
     println!("--------------------------");
@@ -137,6 +167,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (category, total) in &category_totals {
         println!("{}: {:.2}", category, total);
     }
+    // println!("==========================");
+    // for (description, amount, description_lower) in &uncategorized_entries {
+    //     println!("d: {} | a: {:.2} | d: {}", description, amount, description_lower);
+    // }
 
     // What is missing
     // - Abstract current working directory
