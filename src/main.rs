@@ -43,35 +43,36 @@ fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec
 fn parse_amount(value: String) -> f64 {
     // Remove surrounding quotes and trim whitespace
     let cleaned_value = value.trim_matches('"').trim();
-    let normalized_value = cleaned_value.replace(',', ".");
-    
+    let normalized_value = cleaned_value.replace('.', "");      // Removing thousand separator
+    let normalized_value = normalized_value.replace(',', ".");  // Decimal comma to decimal point
+
     // Attempt to parse as an integer first
     if let Ok(int_value) = normalized_value.parse::<i64>() {
         return int_value as f64;
     }
-    
+
     // If integer parsing fails, attempt to parse as a float
     if let Ok(float_value) = normalized_value.parse::<f64>() {
         return float_value;
     }
-    
+
     // Default to 0.0 if both parsing attempts fail
     0.0
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    
+
     let args = Cli::parse();
     let mut file_path = args.input;
-    
+
     let categories = load_categories(args.categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
-    
+
     let path = env::current_dir()?;
     let mut constructed_path = path.join("src");
     constructed_path.set_file_name("spendings.csv");
-    
+
     match file_path.as_str() {
         // "" => println!("Consider handing over your own csv, continuing with example data"),
         "" => file_path.replace_range(.., "/home/franz/_devenv/private/dkb-analyze/src/spendings.csv"),
@@ -89,19 +90,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _type_idx = 6;
     let _iban_idx = 7;
     let amount_idx = 8;
-    
+
     let file = File::open(file_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
-    
+
     // Iterate through each record
     for result in rdr.records() {
         let record = result?;
-        
+
         // Assume specific column order: description is column 0, amount is column 1
         let description = record.get(recipient_idx).unwrap_or("").to_string();
-        let amount: f64 = parse_amount(record.get(amount_idx).unwrap_or("0").to_string());
-
         let description_lower = description.to_lowercase();
+
+        let amount: f64 = parse_amount(record.get(amount_idx).unwrap_or("0").to_string());
+        if amount > 0.0 {
+            *category_totals.entry("Income").or_insert(0.0) += amount;
+        }
 
         // Categorize the expense
         let mut matched = false;
