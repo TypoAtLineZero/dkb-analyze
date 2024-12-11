@@ -3,22 +3,15 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::env;
-use log::info;
 use csv::ReaderBuilder;
 
 mod categories;
-
-// use crate::categories::Expense;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
     #[arg(short, long, required = false, default_value="")]
-    // file_path: Option<PathBuf>,
     input: String,
-
-    // #[arg(short, long, required = false)]
-    // interval: Option<String>,
 
     #[arg(short, long, required = false)]
     visualization: bool,
@@ -26,14 +19,11 @@ struct Cli {
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    info!("Starting DKB Analyze");
 
     let args = Cli::parse();
     let mut file_path = args.input;
 
     let categories = categories::get_categories();
-
-    // Totals for each category
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
 
     let path = env::current_dir()?;

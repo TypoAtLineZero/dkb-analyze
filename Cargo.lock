@@ -308,7 +308,6 @@ dependencies = [
  "clap",
  "csv",
  "env_logger",
- "log",
  "plotters",
  "serde",
 ]
