@@ -1,20 +1,43 @@
 use clap::Parser;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
 use std::env;
 use csv::ReaderBuilder;
 
-mod categories;
+mod categories_example;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
+    // Path to the user-defined categories file (optional)
+    #[arg(short, long, required = false, default_value="categories_example.rs")]
+    categories: Option<String>,
+
+    // DKB csv input file
     #[arg(short, long, required = false, default_value="")]
     input: String,
 
+    // WIP: visualization switch
     #[arg(short, long, required = false)]
     visualization: bool,
+}
+
+fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec<&'static str>> {
+    if let Some(path) = categories_file {
+        // Check if the user-specified file exists
+        if fs::metadata(&path).is_ok() {
+            println!("Using user-defined categories from: {}", path);
+            // mod user_categories; // Assume dynamically compiled or integrated user-defined categories module
+            // return user_categories::get_categories(); // User-defined categories
+        } else {
+            eprintln!("Categories file '{}' not found. Falling back to default categories.", path);
+        }
+    }
+
+    // Fallback to default categories
+    println!("Using default categories.");
+    categories_example::get_categories()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -23,7 +46,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let mut file_path = args.input;
 
-    let categories = categories::get_categories();
+    let categories = load_categories(args.categories);
+    println!("{:?}", categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
 
     let path = env::current_dir()?;
