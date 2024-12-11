@@ -8,7 +8,7 @@ use csv::ReaderBuilder;
 
 mod categories;
 
-use crate::categories::Expense;
+// use crate::categories::Expense;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -30,13 +30,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::parse();
     let mut file_path = args.input;
-    // Define categories and their keywords
-    let mut categories: HashMap<&str, Vec<&str>> = HashMap::new();
-    categories.insert("Food", vec!["restaurant", "grocery", "cafe"]);
-    categories.insert("Transportation", vec!["bus", "taxi", "fuel", "train"]);
-    categories.insert("Entertainment", vec!["movie", "concert", "game"]);
-    categories.insert("Car", vec!["Aral", "JUDITH NEUMEISTER", "S DirektVersicherung AG"]);
-    
+
+    let categories = categories::get_categories();
+
     // Totals for each category
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
 
@@ -53,15 +49,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{}", file_path);
 
     // Define column indices for the CSV fields
-    let _posting_idx = 0; // Assuming the second column is 'description'
-    let _validation_idx = 1; // Assuming the second column is 'description'
-    let _status_idx = 2; // Assuming the second column is 'description'
-    let _payer_idx = 3; // Assuming the second column is 'description'
-    let recipient_idx = 4; // Assuming the second column is 'description'
-    let _description_idx = 5; // Assuming the second column is 'description'
-    let _type_idx = 6; // Assuming the second column is 'description'
-    let _iban_idx = 7; // Assuming the second column is 'description'
-    let amount_idx = 8;      // Assuming the third column is 'amount'
+    let _posting_idx = 0;
+    let _validation_idx = 1;
+    let _status_idx = 2;
+    let _payer_idx = 3;
+    let recipient_idx = 4;
+    let _description_idx = 5;
+    let _type_idx = 6;
+    let _iban_idx = 7;
+    let amount_idx = 8;
 
     let file = File::open(file_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
