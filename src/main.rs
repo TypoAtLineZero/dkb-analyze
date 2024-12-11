@@ -68,6 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let categories = load_categories(args.categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
+    let mut uncategorized_totals: HashMap<&str, f64> = HashMap::new();
 
     let path = env::current_dir()?;
     let mut constructed_path = path.join("src");
@@ -93,10 +94,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let file = File::open(file_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+    let mut entries_total: i32 = 0;
+    let mut entries_uncategorized: i32 = 0;
 
     // Iterate through each record
     for result in rdr.records() {
         let record = result?;
+        entries_total += 1;
 
         // Assume specific column order: description is column 0, amount is column 1
         let description = record.get(recipient_idx).unwrap_or("").to_string();
@@ -119,23 +123,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Optional: Handle uncategorized expenses
         if !matched {
-            *category_totals.entry("Uncategorized").or_insert(0.0) += amount;
+            entries_uncategorized += 1;
+            *uncategorized_totals.entry("Uncategorized").or_insert(0.0) += amount;
         }
     }
 
     // Print the totals for each category
-    println!("Category Totals:");
+    println!("--------------------------");
+    println!("Evaluated records: {}", entries_total);
+    println!("Uncategorized records: {}", entries_uncategorized);
+    println!("Uncategorized value: {:?}", &uncategorized_totals["Uncategorized"]);
+    println!("--------------------------");
     for (category, total) in &category_totals {
         println!("{}: {:.2}", category, total);
     }
 
     // What is missing
     // - Abstract current working directory
-    // - Count number of entries overall
-    // - Count number of uncategorized entries
     // - Analyze number of uncategorized entries
     // - if entry is not found in description column, search in other columns but only with uncategorized entries
-    // - Count entries with income
 
     Ok(())
 }
