@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let categories = load_categories(args.categories);
     let mut category_totals: HashMap<&str, f64> = HashMap::new();
     let mut uncategorized_totals: HashMap<&str, f64> = HashMap::new();
-    let mut uncategorized_entries: Vec<(String, f64, String)> = Vec::new();
+    let mut uncategorized_entries: Vec<(String, f64)> = Vec::new();
 
     let path = env::current_dir()?;
     let mut constructed_path = path.join("src");
@@ -94,7 +94,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let amount_idx = 8;
 
     let file = File::open(file_path)?;
-    let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+    let mut rdr = ReaderBuilder::new()
+        .delimiter(b';')
+        .has_headers(false)
+        .from_reader(file);
     let mut entries_total: i32 = 0;
     let mut entries_uncategorized: i32 = 0;
 
@@ -111,6 +114,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let amount: f64 = parse_amount(record.get(amount_idx).unwrap_or("0").to_string());
         if amount > 0.0 {
             *category_totals.entry("Income").or_insert(0.0) += amount;
+            continue;
         }
 
         // Categorize the expense
@@ -127,47 +131,49 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !matched {
             entries_uncategorized += 1;
             *uncategorized_totals.entry("Uncategorized").or_insert(0.0) += amount;
-            uncategorized_entries.push((description, amount, description_lower));
+            uncategorized_entries.push((description_lower, amount));
         }
     }
 
     // Print uncategorized entries
-    for (description, amount, description_lower) in &uncategorized_entries {
-        println!(
-            "Description: {}, Amount: {:.2}, Additional Field: {}",
-            description, amount, description_lower
-        );
-    }
-
-    // for (description, amount, description_lower) in uncategorized_entries {
-    //     let mut matched = false;
-    
-    //     // Try to categorize using additional field
-    //     for (category, keywords) in &categories {
-    //         if keywords.iter().any(|k| description_lower.contains(k)) {
-    //             *category_totals.entry(category).or_insert(0.0) += amount;
-    //             matched = true;
-    //             break;
-    //         }
-    //     }
-    
-    //     // If still uncategorized, add to the "Uncategorized" category
-    //     if !matched {
-    //         *category_totals.entry("Uncategorized").or_insert(0.0) += amount;
-    //     }
+    // for (description_lower, amount) in &uncategorized_entries {
+    //     println!(
+    //         "Description: {}, Amount: {:.2}",
+    //         description_lower, amount
+    //     );
     // }
     
+    for (additional_field, amount) in uncategorized_entries {
+        let additional_field_lower = additional_field.to_lowercase();
+        let mut matched = false;
+    
+        // Try to categorize using additional field
+        for (category, keywords) in &categories {
+            if keywords.iter().any(|k| additional_field_lower.contains(k)) {
+                *category_totals.entry(category).or_insert(0.0) += amount;
+                matched = true;
+                break;
+            }
+        }
+    
+        // If still uncategorized, add to the "Uncategorized" category
+        if !matched {
+            *category_totals.entry("Uncategorized").or_insert(0.0) += amount;
+        }
+    }
+    
 
+    // println!("length: {}", uncategorized_entries.len());
     // Print the totals for each category
     println!("--------------------------");
     println!("Evaluated records: {}", entries_total);
     println!("Uncategorized records: {}", entries_uncategorized);
-    println!("Uncategorized value: {:?}", &uncategorized_totals["Uncategorized"]);
+    println!("Uncategorized value: {:.2?}", &uncategorized_totals["Uncategorized"]);
     println!("--------------------------");
     for (category, total) in &category_totals {
         println!("{}: {:.2}", category, total);
     }
-    // println!("==========================");
+    println!("==========================");
     // for (description, amount, description_lower) in &uncategorized_entries {
     //     println!("d: {} | a: {:.2} | d: {}", description, amount, description_lower);
     // }
