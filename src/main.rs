@@ -5,14 +5,14 @@ use std::fs::{self, File};
 use std::env;
 use csv::ReaderBuilder;
 
-mod categories_example;
 mod categories;
+mod categories_private;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
     // Path to the user-defined categories file (optional)
-    #[arg(short, long, required = false, default_value="categories_example.rs")]
+    #[arg(short, long, required = false, default_value="categories.rs")]
     categories: Option<String>,
 
     // DKB csv input file
@@ -29,7 +29,7 @@ fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec
         // Check if the user-specified file exists
         if fs::metadata(&path).is_ok() {
             println!("Using user-defined categories from: {}", path);
-            return categories::get_categories();
+            return categories_private::get_categories();
         } else {
             eprintln!("Categories file '{}' not found. Falling back to default categories.", path);
         }
@@ -37,7 +37,7 @@ fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec
 
     // Fallback to default categories
     println!("Using default categories.");
-    categories_example::get_categories()
+    categories::get_categories()
 }
 
 fn parse_amount(value: String) -> f64 {
@@ -106,14 +106,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         let record = result?;
         entries_total += 1;
 
-        let recipient = record.get(recipient_idx).unwrap_or("").to_string();
+        let recipient = record.get(recipient_idx)
+            .unwrap_or("")
+            .to_string();
         let recipient_lower = recipient.to_lowercase();
-        let description = record.get(description_idx).unwrap_or("").to_string();
+        let description = record.get(description_idx)
+            .unwrap_or("")
+            .to_string();
         let description_lower = description.to_lowercase();
 
-        let amount: f64 = parse_amount(record.get(amount_idx).unwrap_or("0").to_string());
+        let amount: f64 = parse_amount(record.get(amount_idx)
+            .unwrap_or("0")
+            .to_string());
         if amount > 0.0 {
-            *category_totals.entry("Income").or_insert(0.0) += amount;
+            *category_totals.entry("Income")
+                .or_insert(0.0) += amount;
             continue;
         }
 
