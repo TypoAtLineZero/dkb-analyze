@@ -145,7 +145,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (additional_field, amount) in uncategorized_entries {
         let additional_field_lower = additional_field.to_lowercase();
         let mut matched = false;
-    
+
         // Try to categorize using additional field
         for (category, keywords) in &categories {
             if keywords.iter().any(|k| additional_field_lower.contains(k)) {
@@ -171,18 +171,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{0: >25} | {total:.2}", category, total=total);
     }
     println!("====================================================");
-    // println!("--------------------------");
-    // println!("Evaluated records: {}", entries_total);
-    // println!("Uncategorized records: {}", entries_uncategorized);
-    // println!("Uncategorized value: {:.2?}", &uncategorized_totals["Uncategorized"]);
-    // println!("--------------------------");
-    // for (category, total) in &category_totals {
-    //     println!("{}: {:.2}", category, total);
-    // }
-    // println!("==========================");
-    // for (description, amount, description_lower) in &uncategorized_entries {
-    //     println!("d: {} | a: {:.2} | d: {}", description, amount, description_lower);
-    // }
 
     // What is missing
     // - Abstract current working directory
