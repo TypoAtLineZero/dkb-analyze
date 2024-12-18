@@ -142,14 +142,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // Print uncategorized entries
-    // for (description_lower, amount) in &uncategorized_entries {
-    //     println!(
-    //         "Description: {}, Amount: {:.2}",
-    //         description_lower, amount
-    //     );
-    // }
-    
     for (additional_field, amount) in uncategorized_entries {
         let additional_field_lower = additional_field.to_lowercase();
         let mut matched = false;
@@ -162,25 +154,32 @@ fn main() -> Result<(), Box<dyn Error>> {
                 break;
             }
         }
-    
+
         // If still uncategorized, add to the "Uncategorized" category
         if !matched {
             *category_totals.entry("Uncategorized").or_insert(0.0) += amount;
         }
     }
-    
 
-    // println!("length: {}", uncategorized_entries.len());
-    // Print the totals for each category
-    println!("--------------------------");
-    println!("Evaluated records: {}", entries_total);
-    println!("Uncategorized records: {}", entries_uncategorized);
-    println!("Uncategorized value: {:.2?}", &uncategorized_totals["Uncategorized"]);
-    println!("--------------------------");
+
+    println!("\n====================================================");
+    println!("{0: >25} | {1: <10}", "Evaluated records", entries_total);
+    println!("{0: >25} | {1: <10}", "Uncategorized records", entries_uncategorized);
+    println!("{0: >25} | {1: <10}", "Uncategorized value", &uncategorized_totals["Uncategorized"]);
+    println!("====================================================");
     for (category, total) in &category_totals {
-        println!("{}: {:.2}", category, total);
+        println!("{0: >25} | {total:.2}", category, total=total);
     }
-    println!("==========================");
+    println!("====================================================");
+    // println!("--------------------------");
+    // println!("Evaluated records: {}", entries_total);
+    // println!("Uncategorized records: {}", entries_uncategorized);
+    // println!("Uncategorized value: {:.2?}", &uncategorized_totals["Uncategorized"]);
+    // println!("--------------------------");
+    // for (category, total) in &category_totals {
+    //     println!("{}: {:.2}", category, total);
+    // }
+    // println!("==========================");
     // for (description, amount, description_lower) in &uncategorized_entries {
     //     println!("d: {} | a: {:.2} | d: {}", description, amount, description_lower);
     // }
