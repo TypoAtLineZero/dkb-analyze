@@ -100,6 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .from_reader(file);
     let mut entries_total: i32 = 0;
     let mut entries_uncategorized: i32 = 0;
+    let mut spendings: f64 = 0.0;
 
     // Iterate through each record
     for result in rdr.records() {
@@ -123,6 +124,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .or_insert(0.0) += amount;
             continue;
         }
+        spendings += amount;
 
         // Categorize the expense
         let mut matched = false;
@@ -161,8 +163,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    let income = &category_totals["Income"];
+    let balance = income + spendings;   // spending has negative sign
+    let spendings_trunc = f64::trunc(spendings * 100.0) / 100.0;
+    let balance_trunc = f64::trunc(balance * 100.0) / 100.0;
 
     println!("\n====================================================");
+    println!("{0: >25} | {1: <10}", "Incoming", income);
+    println!("{0: >25} | {1: <10}", "Outgoing", spendings_trunc);
+    println!("{0: >25} | {1: <10}", "Balance", balance_trunc);
+    println!("====================================================");
     println!("{0: >25} | {1: <10}", "Evaluated records", entries_total);
     println!("{0: >25} | {1: <10}", "Uncategorized records", entries_uncategorized);
     println!("{0: >25} | {1: <10}", "Uncategorized value", &uncategorized_totals["Uncategorized"]);
