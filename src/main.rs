@@ -186,6 +186,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // - Abstract current working directory
     // - Analyze number of uncategorized entries
     // - if entry is not found in description column, search in other columns but only with uncategorized entries
+    // - Monthly analysis
+    // - refactor way more into functions
 
     Ok(())
 }
