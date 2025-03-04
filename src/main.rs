@@ -22,6 +22,10 @@ struct Cli {
     // WIP: visualization switch
     #[arg(short, long, required = false)]
     visualization: bool,
+
+    // WIP: monthly analysis
+    #[arg(short, long, required = false)]
+    monthly: bool,
 }
 
 fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec<&'static str>> {
@@ -43,8 +47,12 @@ fn load_categories(categories_file: Option<String>) -> HashMap<&'static str, Vec
 fn parse_amount(value: String) -> f64 {
     // Remove surrounding quotes and trim whitespace
     let cleaned_value = value.trim_matches('"').trim();
-    let normalized_value = cleaned_value.replace('.', "");      // Removing thousand separator
-    let normalized_value = normalized_value.replace(',', ".");  // Decimal comma to decimal point
+
+    // Removing thousand separator
+    let normalized_value = cleaned_value.replace('.', "");
+
+    // Decimal comma to decimal point
+    let normalized_value = normalized_value.replace(',', ".");
 
     // Attempt to parse as an integer first
     if let Ok(int_value) = normalized_value.parse::<i64>() {
@@ -57,7 +65,7 @@ fn parse_amount(value: String) -> f64 {
     }
 
     // Default to 0.0 if both parsing attempts fail
-    0.0
+    return 0.0;
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -169,18 +177,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     let balance_trunc = f64::trunc(balance * 100.0) / 100.0;
 
     println!("\n====================================================");
+    println!("{0: >33}", ">> GENERAL <<");
     println!("{0: >25} | {1: <10}", "Incoming", income);
     println!("{0: >25} | {1: <10}", "Outgoing", spendings_trunc);
     println!("{0: >25} | {1: <10}", "Balance", balance_trunc);
     println!("====================================================");
+    println!("{0: >32}", ">> STATS <<");
     println!("{0: >25} | {1: <10}", "Evaluated records", entries_total);
     println!("{0: >25} | {1: <10}", "Uncategorized records", entries_uncategorized);
     println!("{0: >25} | {1: <10}", "Uncategorized value", &uncategorized_totals["Uncategorized"]);
     println!("====================================================");
+    println!("{0: >34}", ">> BREAKDOWN <<");
     for (category, total) in &category_totals {
         println!("{0: >25} | {total:.2}", category, total=total);
     }
     println!("====================================================");
+
+    if args.monthly {
+        // Extract duration from input file
+        println!("{0: >33}", ">> MONTHLY <<");
+            for (category, total) in &category_totals {
+                println!("{0: >25} | {total:.2}", category, total=total);
+            }
+        println!("====================================================");
+    }
 
     // What is missing
     // - Abstract current working directory
