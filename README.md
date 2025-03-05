@@ -28,4 +28,6 @@ Output:
 Abstraction overview
 ![Model](https://github.com/TypoAtLineZero/dkb-analyze/blob/main/dkb-analyze-overview.png)
 
+<div style="text-align: center;">
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/typoatlinezero)
+</div>
