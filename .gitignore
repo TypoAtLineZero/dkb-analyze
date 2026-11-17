@@ -1,2 +1,4 @@
 /target
-/src/categories_*.rs
+
+# Personal category definitions (see categories.example.toml)
+/categories.toml

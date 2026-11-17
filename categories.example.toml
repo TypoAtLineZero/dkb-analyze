@@ -1,0 +1,18 @@
+# Copy this file to categories.toml (git-ignored) and adapt it.
+#
+# One entry per category: Name = ["keyword", ...]
+# * Keywords are matched case-insensitively as substrings, first against the
+#   recipient ("Zahlungsempfänger*in"), then against the purpose
+#   ("Verwendungszweck").
+# * Categories are checked from top to bottom; the first match wins.
+# * Positive amounts are always counted as "Income"; "Income" and
+#   "Uncategorized" are reserved names.
+
+Housing = ["hausverwaltung", "miete", "stadtwerke"]
+Groceries = ["rewe", "edeka", "aldi", "lidl", "netto", "penny", "kaufland"]
+Restaurants = ["restaurant", "cafe", "lieferando"]
+Transportation = ["db vertrieb", "deutsche bahn", "bvg", "mvg", "fahrrad", "aral", "shell"]
+Subscriptions = ["netflix", "spotify", "disney"]
+Insurance = ["versicherung"]
+Entertainment = ["konzert", "kino", "ticket"]
+Shopping = ["paypal", "amazon", "zalando"]
