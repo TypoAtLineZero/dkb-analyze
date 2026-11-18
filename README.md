@@ -150,9 +150,6 @@ Data flows in one direction: `parser` → `categories` → `analysis` →
 `report` / `tui`. Everything except `main.rs` is a library (`dkb_analyze`),
 so the analysis can be reused or tested without the CLI.
 
-Original concept sketch:
-![Model](https://github.com/TypoAtLineZero/dkb-analyze/blob/main/dkb-analyze-overview.png)
-
 ## Development
 
 ```sh
@@ -176,18 +173,17 @@ This release refactors the whole project and adds visualization.
 - Multiple input files in one run.
 - "Top uncategorized" list to help extend the categories.
 - Categories are loaded at runtime from a TOML file
-  (`categories.example.toml`). This replaces the compiled-in
-  `categories_private.rs`.
+  (`categories.example.toml`) instead of being compiled into the binary.
 - Works with real DKB exports: metadata lines, German headers, `;`/`,`
   delimiter detection, legacy format, and ISO-8859-1 / UTF-8 BOM handling.
 - Sample data in `examples/` and 29 tests (unit, render and CLI).
 
 **Fixed**
 
-- The project did not compile without the git-ignored
-  `src/categories_private.rs`.
-- The input path fell back to a hard-coded personal path
-  (`/home/franz/...`). The input file is now a required argument.
+- The project did not compile from a clean checkout because a
+  categories module was missing from the repository.
+- Without an input file, the program fell back to a hard-coded
+  machine-specific path. The input file is now a required argument.
 - The parser expected `;`, but the bundled sample used `,`. The delimiter
   is now detected.
 - Unparseable amounts silently counted as `0.0`. They are now reported as
