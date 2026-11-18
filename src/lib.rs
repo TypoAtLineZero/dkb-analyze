@@ -5,12 +5,14 @@
 //! 1. [`parser`] reads one or more exports into [`Transaction`]s,
 //! 2. [`categories`] assigns each booking a category by keyword,
 //! 3. [`analysis`] sums income, expenses and categories per period,
-//! 4. [`report`] prints a text report, or [`tui`] shows an interactive dashboard.
+//! 4. [`recurring`] groups uncategorized spending by merchant and suggests keywords,
+//! 5. [`report`] prints a text report, or [`tui`] shows an interactive dashboard.
 
 pub mod analysis;
 pub mod categories;
 pub mod money;
 pub mod parser;
+pub mod recurring;
 pub mod report;
 pub mod transaction;
 pub mod tui;

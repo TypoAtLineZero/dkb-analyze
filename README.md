@@ -16,7 +16,8 @@ cargo run --release -- [OPTIONS] <CSV>...
 | `-c, --categories <FILE>` | TOML file with category keywords. Default: `./categories.toml` if present, otherwise built-in categories. |
 | `-p, --period <weekly\|monthly\|yearly>` | Grouping of the balance table and charts. Default: `monthly`. |
 | `-t, --tui` (alias `--visualize`) | Open the interactive terminal dashboard instead of printing the report. |
-| `--top-uncategorized <N>` | Number of uncategorized counterparties listed in the report. Default: `10`. |
+| `--top-uncategorized <N>` | Number of uncategorized merchants listed in the report (`0` hides the section). Default: `10`. |
+| `--suggest-categories` | Print keyword suggestions for uncategorized spending as a TOML snippet instead of the report. |
 
 Try it with the bundled sample data:
 
@@ -55,9 +56,9 @@ redirected to a file (`> report.txt`).
   Average                                       1.013,99 €
 ```
 
-If some spending is uncategorized, a **TOP UNCATEGORIZED** section lists
-the counterparties with the highest uncategorized spending. These are good
-candidates for new keywords.
+If some spending is uncategorized, the report ends with an
+**UNCATEGORIZED BY MERCHANT** section. See
+[Categorizing uncategorized spending](#categorizing-uncategorized-spending).
 
 ### Terminal dashboard (`--tui`)
 
@@ -86,11 +87,26 @@ candidates for new keywords.
 | `Tab` / `g` | Cycle weekly → monthly → yearly |
 | `w` `m` `y` | Switch to weekly / monthly / yearly directly |
 | `↑` `↓` / `j` `k`, `PgUp` `PgDn`, `Home` `End` | Scroll the transaction list |
+| `u` | Toggle the uncategorized merchant view (see below) |
 | `q` / `Esc` / `Ctrl+C` | Quit |
 
 The bar chart shows as many periods as fit the terminal width and scrolls so
 that the selected period stays visible. When you switch the grouping, the
 selection stays at the same point in time (e.g. week 49 → December).
+
+In the uncategorized view (`u`), the lower half lists uncategorized
+spending grouped by merchant, across all periods. `↑` `↓` select a merchant,
+and the right pane lists all of its payments with purpose, date and amount:
+
+```text
+┌ Uncategorized by merchant · all periods · 8 merchants, -7.215,34 € ┐┌ PayPal · Onlineshop ────────────────────────┐
+│  Keyword                      Pattern   Count         Total        ││Date       Purpose                     Amount│
+│  hausverwaltung sonnenhof     monthly       6   -5.880,00 €        ││06.12.2024 Ihr Einkauf bei Onlineshop -58,33 €│
+│  stadtwerke musterstadt       monthly       6     -552,00 €        ││19.11.2024 Ihr Einkauf bei Onlineshop -29,49 €│
+│▶ onlineshop                   repeated      6     -321,60 €        ││23.10.2024 Ihr Einkauf bei Onlineshop -67,53 €│
+│  fahrradladen speiche         one-off       1     -189,00 €        ││...                                           │
+└────────────────────────────────────────────────────────────────────┘└─ 6 in 6 months · Ø -53,60 € · 20.07.24 – 06.12.24 ┘
+```
 
 ## Categories
 
@@ -113,6 +129,70 @@ Rules:
 - Categories are checked from top to bottom, and the first match wins.
 - Positive amounts always count as **Income**. Spending without a match is
   **Uncategorized**. Both names are reserved.
+
+## Categorizing uncategorized spending
+
+To find the entries worth categorizing first, dkb-analyze groups all
+uncategorized spending by merchant and checks how regularly each one
+occurs. Pass all your exports at once (`dkb-analyze 2023-*.csv 2024-*.csv`)
+so that recurrence is measured over your whole history.
+
+```text
+ UNCATEGORIZED BY MERCHANT                 keywords for categories.toml
+────────────────────────────────────────────────────────────────────────
+  Keyword                  Pattern  Count Months   Ø amount        Total
+  hausverwaltung sonnenhof monthly      6      6  -980,00 €  -5.880,00 €
+  stadtwerke musterstadt   monthly      6      6   -92,00 €    -552,00 €
+  onlineshop               repeated     6      6   -53,60 €    -321,60 €
+  fahrradladen speiche     one-off      1      1  -189,00 €    -189,00 €
+```
+
+**Grouping by merchant.** Each booking gets a normalized merchant key, so
+different spellings of the same merchant end up in one group:
+
+- The name is lowercased and cut off at the first comma (the address).
+  Words containing digits (branch, card and order numbers), single letters
+  and legal forms or filler words (GmbH, AG, S.a.r.l., Filiale, …) are
+  dropped, and at most two words are kept. For example, `REWE Markt GmbH
+  Filiale 4711 Berlin` and `REWE MARKT GMBH Fil. 0815` both become
+  `rewe markt`.
+- For payment services (PayPal, Klarna, SumUp, Stripe, Adyen), the real
+  merchant is taken from the purpose text, e.g. `Ihr Einkauf bei Spotify AB`
+  → `paypal: spotify`.
+
+**Pattern.** Each group is labeled by how regularly it occurs:
+
+| Pattern | Rule | Typical examples |
+| --- | --- | --- |
+| `monthly` | 3+ payments, median gap 25–35 days, largest amount at most 50 % above the smallest | rent, subscriptions, insurance |
+| `frequent` | 4+ payments, on average 2+ per active month | supermarkets, cafés |
+| `repeated` | more than one payment without a clear rhythm | online shops |
+| `one-off` | a single payment | |
+
+**Ranking.** Recurring groups come first; within each part, the groups are
+sorted by total amount. The entries at the top improve your categorization
+the most.
+
+**Keyword.** The keyword column is checked to match every payment of the
+group with the same rules the categorizer uses. If the full key doesn't
+match all of them (e.g. `DB-Vertrieb` vs. `DB Vertrieb`), its most specific
+common word is used instead (`vertrieb`). Groups without a common keyword are
+shown in parentheses.
+
+**Suggestions file.** `--suggest-categories` prints the keywords as a TOML
+snippet. Paste it into `categories.toml` and move each line into the right
+category:
+
+```toml
+Unsorted = [
+  "hausverwaltung sonnenhof",        # monthly, 6x, total -5.880,00 € · Hausverwaltung Sonnenhof
+  "stadtwerke musterstadt",          # monthly, 6x, total -552,00 € · Stadtwerke Musterstadt
+  "onlineshop",                      # repeated, 6x, total -321,60 € · PayPal · Onlineshop
+]
+```
+
+The snippet is a valid categories file on its own, so you can also use it
+directly with `-c` to see how everything looks once it's categorized.
 
 ## Supported input formats
 
@@ -140,14 +220,15 @@ src/
 ├── parser.rs       DKB CSV reader (delimiter/encoding/header detection)
 ├── categories.rs   Categorizer: TOML loading and keyword matching
 ├── analysis.rs     Totals per week/month/year and per category
+├── recurring.rs    Uncategorized spending by merchant: grouping, patterns, keyword suggestions
 ├── report.rs       Plain-text report
 └── tui.rs          Interactive dashboard (ratatui)
 tests/cli.rs        End-to-end tests of the binary
 examples/           Fictional sample exports
 ```
 
-Data flows in one direction: `parser` → `categories` → `analysis` →
-`report` / `tui`. Everything except `main.rs` is a library (`dkb_analyze`),
+Data flows in one direction: `parser` → `categories` → `analysis` /
+`recurring` → `report` / `tui`. Everything except `main.rs` is a library (`dkb_analyze`),
 so the analysis can be reused or tested without the CLI.
 
 ## Development
@@ -157,6 +238,29 @@ cargo test                   # unit tests, dashboard render tests (TestBackend),
 cargo clippy --all-targets
 cargo fmt
 ```
+
+## Changes in 0.3.0
+
+**New**
+
+- Uncategorized spending is grouped by merchant instead of by exact name.
+  Different spellings are merged, and for PayPal & co. the real merchant
+  comes from the purpose text.
+- Each merchant group gets a recurrence pattern (`monthly`, `frequent`,
+  `repeated`, `one-off`) together with the payment count, active months,
+  average and total. Recurring groups are listed first.
+- Each group comes with a verified keyword for `categories.toml`.
+- `--suggest-categories` prints all keywords as a ready-to-paste TOML snippet.
+- Dashboard: `u` opens the uncategorized merchant view with the payments
+  of the selected merchant.
+
+**Changed**
+
+- The report's **TOP UNCATEGORIZED** section is replaced by
+  **UNCATEGORIZED BY MERCHANT**. `--top-uncategorized` now counts merchants,
+  and `0` hides the section.
+- Library: `analysis::top_uncategorized` and `CounterpartyTotal` are
+  replaced by `recurring::uncategorized_groups` and `MerchantGroup`.
 
 ## Changes in 0.2.0
 

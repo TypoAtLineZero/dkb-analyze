@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
 
-use dkb_analyze::analysis::top_uncategorized;
+use dkb_analyze::recurring::{suggestions_toml, uncategorized_groups};
 use dkb_analyze::{Categorizer, Granularity, analyze, parser, report, tui};
 
 /// Categories file picked up from the working directory when `--categories`
@@ -33,9 +33,14 @@ struct Cli {
     #[arg(short, long, visible_alias = "visualize")]
     tui: bool,
 
-    /// Number of uncategorized counterparties listed in the report.
+    /// Number of uncategorized merchants listed in the report (0 hides the section).
     #[arg(long, value_name = "N", default_value_t = 10)]
     top_uncategorized: usize,
+
+    /// Print keyword suggestions for uncategorized spending as a TOML snippet
+    /// for the categories file instead of the report.
+    #[arg(long, conflicts_with = "tui")]
+    suggest_categories: bool,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -86,10 +91,18 @@ fn run(cli: Cli) -> anyhow::Result<()> {
     let granularity = cli.period.into();
     if cli.tui {
         tui::run(&transactions, &categorizer, granularity).context("terminal dashboard failed")?;
+    } else if cli.suggest_categories {
+        print!(
+            "{}",
+            suggestions_toml(&uncategorized_groups(&transactions, &categorizer))
+        );
     } else {
         let analysis = analyze(&transactions, &categorizer, granularity);
-        let uncategorized = top_uncategorized(&transactions, &categorizer, cli.top_uncategorized);
-        print!("{}", report::render(&analysis, &uncategorized));
+        let uncategorized = uncategorized_groups(&transactions, &categorizer);
+        print!(
+            "{}",
+            report::render(&analysis, &uncategorized, cli.top_uncategorized)
+        );
     }
     Ok(())
 }

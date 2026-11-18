@@ -2,3 +2,4 @@
 
 # Personal category definitions (see categories.example.toml)
 /categories.toml
+*.categories.toml

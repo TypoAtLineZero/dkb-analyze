@@ -203,47 +203,6 @@ pub fn analyze(
     }
 }
 
-/// Spending with one counterparty that matched no category.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CounterpartyTotal {
-    pub name: String,
-    pub amount: Amount,
-    pub transactions: usize,
-}
-
-/// The counterparties with the most uncategorized spending: good candidates
-/// for new keywords in the categories file.
-pub fn top_uncategorized(
-    transactions: &[Transaction],
-    categorizer: &Categorizer,
-    limit: usize,
-) -> Vec<CounterpartyTotal> {
-    let mut totals: HashMap<&str, (Amount, usize)> = HashMap::new();
-    for tx in transactions
-        .iter()
-        .filter(|t| categorizer.classify(t) == Label::Uncategorized)
-    {
-        let name = match tx.counterparty() {
-            "" => "(unknown)",
-            name => name,
-        };
-        let entry = totals.entry(name).or_default();
-        entry.0 += tx.amount;
-        entry.1 += 1;
-    }
-    let mut result: Vec<CounterpartyTotal> = totals
-        .into_iter()
-        .map(|(name, (amount, transactions))| CounterpartyTotal {
-            name: name.to_string(),
-            amount,
-            transactions,
-        })
-        .collect();
-    result.sort_by(|a, b| a.amount.cmp(&b.amount).then_with(|| a.name.cmp(&b.name)));
-    result.truncate(limit);
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,15 +287,5 @@ mod tests {
         assert!(analysis.periods.is_empty());
         assert_eq!(analysis.range, None);
         assert_eq!(analysis.overall.balance(), Amount::ZERO);
-    }
-
-    #[test]
-    fn uncategorized_ranking() {
-        let (txs, c) = sample();
-        let top = top_uncategorized(&txs, &c, 10);
-        assert_eq!(top.len(), 1);
-        assert_eq!(top[0].name, "Mystery");
-        assert_eq!(top[0].transactions, 2);
-        assert_eq!(top[0].amount, Amount::from_cents(-3_000));
     }
 }

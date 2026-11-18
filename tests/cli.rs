@@ -97,3 +97,25 @@ fn input_is_required() {
     let output = run(&[]);
     assert!(!output.status.success());
 }
+
+#[test]
+fn suggested_categories_cover_uncategorized_spending() {
+    let sample = example("examples/dkb-export-sample.csv");
+    let output = run(&["--suggest-categories", sample.to_str().unwrap()]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    let snippet = stdout(&output);
+    assert!(snippet.contains("\"hausverwaltung sonnenhof\""));
+    assert!(snippet.contains("monthly"));
+
+    // Used as a categories file, the snippet catches every listed merchant.
+    let path = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("suggested.toml");
+    std::fs::write(&path, &snippet).unwrap();
+    let output = run(&["-c", path.to_str().unwrap(), sample.to_str().unwrap()]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    let report = stdout(&output);
+    assert!(report.contains("Unsorted"));
+    assert!(
+        !report.contains("hausverwaltung sonnenhof"),
+        "no longer uncategorized"
+    );
+}

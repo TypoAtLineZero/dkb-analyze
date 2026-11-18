@@ -9,6 +9,10 @@
 //! │ Groceries ███████        │ 15.10.2024  REWE   Groceries  -23,45 │
 //! └──────────────────────────┴───────────────────────────────────────┘
 //! ```
+//!
+//! Pressing `u` swaps the lower half for the uncategorized spending grouped
+//! by merchant (see [`crate::recurring`]) and the payments of the selected
+//! group.
 
 use std::io;
 
@@ -23,6 +27,7 @@ use ratatui::widgets::{Bar, BarChart, BarGroup, Block, Cell, Paragraph, Row, Tab
 use crate::analysis::{Analysis, Breakdown, Granularity, Period, analyze};
 use crate::categories::{Categorizer, Label};
 use crate::money::Amount;
+use crate::recurring::{MerchantGroup, Pattern, uncategorized_groups};
 use crate::report::truncate;
 use crate::transaction::Transaction;
 
@@ -55,6 +60,15 @@ pub fn run(
     result
 }
 
+/// What the lower half of the dashboard shows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum View {
+    /// Categories and transactions of the selected period.
+    Periods,
+    /// Uncategorized spending grouped by merchant, over all periods.
+    Uncategorized,
+}
+
 /// Dashboard state.
 pub struct App<'a> {
     transactions: &'a [Transaction],
@@ -65,6 +79,10 @@ pub struct App<'a> {
     /// Indices into `transactions` shown in the table, newest first.
     visible: Vec<usize>,
     table: TableState,
+    view: View,
+    /// Uncategorized merchants over all transactions, most important first.
+    groups: Vec<MerchantGroup>,
+    group_table: TableState,
     quit: bool,
 }
 
@@ -81,8 +99,14 @@ impl<'a> App<'a> {
             selected: None,
             visible: Vec::new(),
             table: TableState::default(),
+            view: View::Periods,
+            groups: uncategorized_groups(transactions, categorizer),
+            group_table: TableState::default(),
             quit: false,
         };
+        if !app.groups.is_empty() {
+            app.group_table.select(Some(0));
+        }
         app.select(app.analysis.periods.len().checked_sub(1));
         app
     }
@@ -122,14 +146,35 @@ impl<'a> App<'a> {
             KeyCode::Char('w') => self.set_granularity(Granularity::Weekly),
             KeyCode::Char('m') => self.set_granularity(Granularity::Monthly),
             KeyCode::Char('y') => self.set_granularity(Granularity::Yearly),
-            KeyCode::Down | KeyCode::Char('j') => self.table.scroll_down_by(1),
-            KeyCode::Up | KeyCode::Char('k') => self.table.scroll_up_by(1),
-            KeyCode::PageDown => self.table.scroll_down_by(10),
-            KeyCode::PageUp => self.table.scroll_up_by(10),
-            KeyCode::Home => self.table.select_first(),
-            KeyCode::End => self.table.select_last(),
+            KeyCode::Char('u') => {
+                self.view = match self.view {
+                    View::Periods => View::Uncategorized,
+                    View::Uncategorized => View::Periods,
+                };
+            }
+            KeyCode::Down | KeyCode::Char('j') => self.active_table().scroll_down_by(1),
+            KeyCode::Up | KeyCode::Char('k') => self.active_table().scroll_up_by(1),
+            KeyCode::PageDown => self.active_table().scroll_down_by(10),
+            KeyCode::PageUp => self.active_table().scroll_up_by(10),
+            KeyCode::Home => self.active_table().select_first(),
+            KeyCode::End => self.active_table().select_last(),
             _ => {}
         }
+    }
+
+    /// The table that the arrow keys scroll in the current view.
+    fn active_table(&mut self) -> &mut TableState {
+        match self.view {
+            View::Periods => &mut self.table,
+            View::Uncategorized => &mut self.group_table,
+        }
+    }
+
+    fn selected_group(&self) -> Option<&MerchantGroup> {
+        let last = self.groups.len().checked_sub(1)?;
+        self.group_table
+            .selected()
+            .map(|i| &self.groups[i.min(last)])
     }
 
     pub fn should_quit(&self) -> bool {
@@ -187,15 +232,25 @@ impl<'a> App<'a> {
             Constraint::Length(1),
         ])
         .areas(frame.area());
-        let [categories, table] =
-            Layout::horizontal([Constraint::Percentage(40), Constraint::Percentage(60)])
-                .areas(bottom);
-
         self.draw_header(frame, header);
         self.draw_chart(frame, chart);
-        self.draw_categories(frame, categories);
-        self.draw_table(frame, table);
-        draw_help(frame, help);
+        match self.view {
+            View::Periods => {
+                let [categories, table] =
+                    Layout::horizontal([Constraint::Percentage(40), Constraint::Percentage(60)])
+                        .areas(bottom);
+                self.draw_categories(frame, categories);
+                self.draw_table(frame, table);
+            }
+            View::Uncategorized => {
+                let [groups, payments] =
+                    Layout::horizontal([Constraint::Percentage(55), Constraint::Percentage(45)])
+                        .areas(bottom);
+                self.draw_groups(frame, groups);
+                self.draw_group_payments(frame, payments);
+            }
+        }
+        draw_help(frame, help, self.view);
     }
 
     fn draw_header(&self, frame: &mut Frame, area: Rect) {
@@ -378,16 +433,124 @@ impl<'a> App<'a> {
         .highlight_symbol("▶ ");
         frame.render_stateful_widget(table, area, &mut self.table);
     }
+
+    fn draw_groups(&mut self, frame: &mut Frame, area: Rect) {
+        let total: Amount = self.groups.iter().map(|g| g.total).sum();
+        let block = Block::bordered().title(format!(
+            " Uncategorized by merchant · all periods · {} merchants, {} ",
+            self.groups.len(),
+            total
+        ));
+        if self.groups.is_empty() {
+            let text = " Nothing uncategorized. Every expense matches a category.";
+            frame.render_widget(Paragraph::new(text).block(block), area);
+            return;
+        }
+        let rows = self.groups.iter().map(|group| {
+            let keyword = match &group.keyword {
+                Some(keyword) => Span::from(keyword.clone()),
+                None => Span::from(format!("({})", group.key)).dim().italic(),
+            };
+            Row::new([
+                Cell::from(keyword),
+                Cell::from(pattern_span(group.pattern)),
+                Cell::from(Line::from(group.count().to_string()).right_aligned()),
+                Cell::from(Line::from(amount_span(group.total)).right_aligned()),
+            ])
+        });
+        let table = Table::new(
+            rows,
+            [
+                Constraint::Fill(1),
+                Constraint::Length(9),
+                Constraint::Length(5),
+                Constraint::Length(13),
+            ],
+        )
+        .header(
+            Row::new([
+                Cell::from("Keyword"),
+                Cell::from("Pattern"),
+                Cell::from(Line::from("Count").right_aligned()),
+                Cell::from(Line::from("Total").right_aligned()),
+            ])
+            .style(Style::new().bold().fg(ACCENT)),
+        )
+        .block(block)
+        .row_highlight_style(Style::new().add_modifier(Modifier::REVERSED))
+        .highlight_symbol("▶ ");
+        frame.render_stateful_widget(table, area, &mut self.group_table);
+    }
+
+    fn draw_group_payments(&self, frame: &mut Frame, area: Rect) {
+        let Some(group) = self.selected_group() else {
+            frame.render_widget(Block::bordered().title(" Payments "), area);
+            return;
+        };
+        let block = Block::bordered()
+            .title(format!(" {} ", group.display_name))
+            .title_bottom(
+                Line::from(format!(
+                    " {} in {} months · Ø {} · {} – {} ",
+                    group.count(),
+                    group.months,
+                    group.average(),
+                    group.first.format("%d.%m.%y"),
+                    group.last.format("%d.%m.%y"),
+                ))
+                .right_aligned(),
+            );
+        let rows = group.transactions.iter().rev().map(|&i| {
+            let tx = &self.transactions[i];
+            let detail = if tx.purpose.trim().is_empty() {
+                &tx.recipient
+            } else {
+                &tx.purpose
+            };
+            Row::new([
+                Cell::from(tx.date.format("%d.%m.%Y").to_string()),
+                Cell::from(detail.trim().to_string()),
+                Cell::from(Line::from(amount_span(tx.amount)).right_aligned()),
+            ])
+        });
+        let table = Table::new(
+            rows,
+            [
+                Constraint::Length(10),
+                Constraint::Fill(1),
+                Constraint::Length(13),
+            ],
+        )
+        .header(
+            Row::new([
+                Cell::from("Date"),
+                Cell::from("Purpose"),
+                Cell::from(Line::from("Amount").right_aligned()),
+            ])
+            .style(Style::new().bold().fg(ACCENT)),
+        )
+        .block(block);
+        frame.render_widget(table, area);
+    }
 }
 
-fn draw_help(frame: &mut Frame, area: Rect) {
-    let keys = [
-        ("←/→", "period"),
-        ("a", "all/one"),
-        ("Tab", "week/month/year"),
-        ("↑/↓", "scroll"),
-        ("q", "quit"),
-    ];
+fn draw_help(frame: &mut Frame, area: Rect, view: View) {
+    let keys: &[(&str, &str)] = match view {
+        View::Periods => &[
+            ("←/→", "period"),
+            ("a", "all/one"),
+            ("Tab", "week/month/year"),
+            ("↑/↓", "scroll"),
+            ("u", "uncategorized"),
+            ("q", "quit"),
+        ],
+        View::Uncategorized => &[
+            ("↑/↓", "select merchant"),
+            ("←/→", "period"),
+            ("u", "back to categories"),
+            ("q", "quit"),
+        ],
+    };
     let spans: Vec<Span> = keys
         .iter()
         .flat_map(|(key, action)| {
@@ -398,6 +561,16 @@ fn draw_help(frame: &mut Frame, area: Rect) {
         })
         .collect();
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
+}
+
+fn pattern_span(pattern: Pattern) -> Span<'static> {
+    let span = Span::from(pattern.to_string());
+    match pattern {
+        Pattern::Monthly => span.fg(Color::Magenta).bold(),
+        Pattern::Frequent => span.fg(Color::Yellow),
+        Pattern::Repeated => span.fg(Color::Blue),
+        Pattern::OneOff => span.dim(),
+    }
 }
 
 fn amount_span(amount: Amount) -> Span<'static> {
@@ -496,11 +669,49 @@ mod tests {
     }
 
     #[test]
+    fn uncategorized_view() {
+        let mut txs = transactions();
+        txs.push(Transaction {
+            date: NaiveDate::from_ymd_opt(2024, 12, 4).unwrap(),
+            payer: "Me".into(),
+            recipient: "MYSTERY SHOP GmbH".into(),
+            purpose: "Bestellung 4711".into(),
+            amount: Amount::from_cents(-1_234),
+        });
+        let categorizer = Categorizer::default();
+        let mut app = App::new(&txs, &categorizer, Granularity::Monthly);
+
+        press(&mut app, KeyCode::Char('u'));
+        let screen = render(&mut app);
+        assert!(screen.contains("Uncategorized by merchant"));
+        assert!(
+            screen.contains("mystery shop"),
+            "both spellings form one group"
+        );
+        assert!(
+            screen.contains("Bestellung 4711"),
+            "payments of the selected group"
+        );
+        assert!(screen.contains("2 in 2 months"));
+
+        // Scrolling past the end keeps a valid selection.
+        press(&mut app, KeyCode::PageDown);
+        assert!(app.selected_group().is_some());
+        render(&mut app);
+
+        press(&mut app, KeyCode::Char('u'));
+        assert!(render(&mut app).contains("Expenses by category"));
+    }
+
+    #[test]
     fn renders_without_transactions() {
         let categorizer = Categorizer::default();
         let mut app = App::new(&[], &categorizer, Granularity::Monthly);
         press(&mut app, KeyCode::Left);
         press(&mut app, KeyCode::Down);
         assert!(render(&mut app).contains("No transactions."));
+        press(&mut app, KeyCode::Char('u'));
+        press(&mut app, KeyCode::Down);
+        assert!(render(&mut app).contains("Nothing uncategorized"));
     }
 }

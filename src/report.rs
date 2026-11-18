@@ -2,24 +2,27 @@
 
 use std::fmt::Write;
 
-use crate::analysis::{Analysis, CounterpartyTotal};
+use crate::analysis::Analysis;
 use crate::money::Amount;
+use crate::recurring::MerchantGroup;
 
 const WIDTH: usize = 72;
 const BAR_WIDTH: usize = 20;
 
-/// Renders the analysis as a text report.
-pub fn render(analysis: &Analysis, uncategorized: &[CounterpartyTotal]) -> String {
+/// Renders the analysis as a text report. `uncategorized` are the merchant
+/// groups of uncategorized spending, of which the first `limit` are listed.
+pub fn render(analysis: &Analysis, uncategorized: &[MerchantGroup], limit: usize) -> String {
     let mut out = String::new();
     // Writing to a String cannot fail.
-    let _ = write_report(&mut out, analysis, uncategorized);
+    let _ = write_report(&mut out, analysis, uncategorized, limit);
     out
 }
 
 fn write_report(
     out: &mut String,
     analysis: &Analysis,
-    uncategorized: &[CounterpartyTotal],
+    uncategorized: &[MerchantGroup],
+    limit: usize,
 ) -> std::fmt::Result {
     let overall = &analysis.overall;
 
@@ -96,23 +99,52 @@ fn write_report(
         writeln!(out, "  {:<40}{:>16}", "Average", average)?;
     }
 
-    if !uncategorized.is_empty() {
-        heading(
-            out,
-            "TOP UNCATEGORIZED",
-            "add keywords for these to categories.toml",
-        )?;
-        for entry in uncategorized {
-            writeln!(
-                out,
-                "  {:<44}{:>4}x {:>16}",
-                truncate(&entry.name, 44),
-                entry.transactions,
-                entry.amount
-            )?;
-        }
+    if !uncategorized.is_empty() && limit > 0 {
+        write_uncategorized(out, uncategorized, limit)?;
     }
     writeln!(out, "{}", "═".repeat(WIDTH))
+}
+
+fn write_uncategorized(
+    out: &mut String,
+    groups: &[MerchantGroup],
+    limit: usize,
+) -> std::fmt::Result {
+    heading(
+        out,
+        "UNCATEGORIZED BY MERCHANT",
+        "keywords for categories.toml",
+    )?;
+    writeln!(
+        out,
+        "  {:<25}{:<9}{:>5}{:>7}{:>11}{:>13}",
+        "Keyword", "Pattern", "Count", "Months", "Ø amount", "Total"
+    )?;
+    for group in groups.iter().take(limit) {
+        let keyword = match &group.keyword {
+            Some(keyword) => keyword.clone(),
+            None => format!("({})", group.key),
+        };
+        writeln!(
+            out,
+            "  {:<25}{:<9}{:>5}{:>7}{:>11}{:>13}",
+            truncate(&keyword, 24),
+            group.pattern,
+            group.count(),
+            group.months,
+            group.average(),
+            group.total,
+        )?;
+    }
+    if groups.len() > limit {
+        let rest = &groups[limit..];
+        let total: Amount = rest.iter().map(|g| g.total).sum();
+        writeln!(out, "  … {} more merchants ({total})", rest.len())?;
+    }
+    writeln!(
+        out,
+        "  Run with --suggest-categories to get these as a categories.toml snippet."
+    )
 }
 
 fn heading(out: &mut String, title: &str, note: &str) -> std::fmt::Result {
